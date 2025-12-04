@@ -1,0 +1,14 @@
+{
+  "name": "exec-orders-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Federal Register Executive Orders API",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  }
+}
