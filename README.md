@@ -18,8 +18,8 @@ MCP is a protocol that allows AI assistants like Claude to interact with externa
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/exec-orders-mcp.git
-cd exec-orders-mcp
+git clone https://github.com/yourusername/federal-register-mcp.git
+cd federal-register-mcp
 
 # Install dependencies
 npm install
@@ -39,7 +39,7 @@ Add this to your Claude Desktop configuration file:
   "mcpServers": {
     "federal-register": {
       "command": "node",
-      "args": ["/path/to/exec-orders-mcp/src/server.js"]
+      "args": ["/path/to/federal-register-mcp/src/server.js"]
     }
   }
 }
@@ -54,7 +54,7 @@ Add this to your Claude Code MCP settings:
   "mcpServers": {
     "federal-register": {
       "command": "node",
-      "args": ["/path/to/exec-orders-mcp/src/server.js"]
+      "args": ["/path/to/federal-register-mcp/src/server.js"]
     }
   }
 }
@@ -105,7 +105,7 @@ This server uses the Federal Register API v1. The API is free and requires no au
 ## Project Structure
 
 ```
-exec-orders-mcp/
+federal-register-mcp/
 ├── src/
 │   ├── server.js              # MCP server implementation
 │   └── federal-register-api.js # Federal Register API client

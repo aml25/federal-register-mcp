@@ -1,7 +1,7 @@
 {
-  "name": "exec-orders-mcp",
+  "name": "federal-register-mcp",
   "version": "1.0.0",
-  "description": "MCP server for Federal Register Executive Orders API",
+  "description": "MCP server for the Federal Register API",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
