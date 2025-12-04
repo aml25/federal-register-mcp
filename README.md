@@ -197,6 +197,13 @@ federal-register-mcp/
 └── README.md
 ```
 
+## Roadmap
+
+- **Hosted version** - Deploy a public instance so users can connect without running locally
+- **Legislation tracking** - Integrate Congress.gov API and Open States for federal and state legislation
+- **Enriched metadata** - Add categories, correlations between executive orders and legislation, impacted populations, and other analytical data
+- **UI experience** - Leverage OpenAI Apps to provide a visual interface for exploring executive and legislative data
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
