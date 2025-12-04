@@ -23,6 +23,9 @@ cd federal-register-mcp
 
 # Install dependencies
 npm install
+
+# Build TypeScript
+npm run build
 ```
 
 ## Usage
@@ -46,7 +49,7 @@ Add this to your Claude Desktop configuration file:
   "mcpServers": {
     "federal-register": {
       "command": "node",
-      "args": ["/path/to/federal-register-mcp/src/server.js"]
+      "args": ["/path/to/federal-register-mcp/dist/server.js"]
     }
   }
 }
@@ -61,7 +64,7 @@ Add this to your Claude Desktop configuration file:
   "mcpServers": {
     "federal-register": {
       "command": "node",
-      "args": ["/path/to/federal-register-mcp/src/server.js"]
+      "args": ["/path/to/federal-register-mcp/dist/server.js"]
     }
   }
 }
@@ -122,10 +125,20 @@ npm start
 npm run start:http
 
 # HTTP mode with custom port
-node src/server.js --http --port 8080
+node dist/server.js --http --port 8080
 
 # Or use environment variable
 MCP_PORT=8080 npm run start:http
+```
+
+### Development
+
+```bash
+# Edit files in src/*.ts, then build
+npm run build
+
+# Or use watch mode for auto-recompile
+npm run dev
 ```
 
 ### Health Check (HTTP mode)
@@ -176,8 +189,10 @@ This server uses the Federal Register API v1. The API is free and requires no au
 ```
 federal-register-mcp/
 ├── src/
-│   ├── server.js              # MCP server implementation
-│   └── federal-register-api.js # Federal Register API client
+│   ├── server.ts              # MCP server implementation
+│   └── federal-register-api.ts # Federal Register API client
+├── dist/                      # Compiled JavaScript (generated)
+├── tsconfig.json
 ├── package.json
 └── README.md
 ```

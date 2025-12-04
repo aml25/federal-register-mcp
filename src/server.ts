@@ -5,29 +5,48 @@
  * access to the Federal Register API. This enables searching and retrieving
  * executive orders, presidential documents, rules, and agency information.
  *
- * MCP is a protocol that allows AI assistants like Claude to interact with
- * external tools and data sources. This server exposes Federal Register
- * data as a set of tools that can be called by the AI.
- *
  * Supports two transport modes:
  *   - stdio: For local use with Claude Desktop (default)
  *   - http: For remote use with Claude Code, ChatGPT, and other clients
  *
  * Usage:
- *   stdio mode: node src/server.js
- *   http mode:  node src/server.js --http [--port 3000]
- *
- * @see https://www.federalregister.gov/developers/documentation/api/v1
- * @see https://modelcontextprotocol.io/
+ *   stdio mode: node dist/server.js
+ *   http mode:  node dist/server.js --http [--port 3000]
  */
 
-const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
-const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
-const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
-const { z } = require('zod');
-const { randomUUID } = require('node:crypto');
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { z } from 'zod';
+import { randomUUID } from 'node:crypto';
+import express, { Request, Response } from 'express';
 
-const api = require('./federal-register-api.js');
+import * as api from './federal-register-api.js';
+
+// =============================================================================
+// TYPES & HELPERS
+// =============================================================================
+
+interface TextContent {
+  type: 'text';
+  text: string;
+  [key: string]: unknown;
+}
+
+interface ToolResult {
+  content: TextContent[];
+  [key: string]: unknown;
+}
+
+function textResult(text: string): ToolResult {
+  return {
+    content: [{ type: 'text' as const, text }]
+  };
+}
+
+function jsonResult(data: unknown): ToolResult {
+  return textResult(JSON.stringify(data, null, 2));
+}
 
 // =============================================================================
 // COMMAND LINE ARGUMENT PARSING
@@ -48,7 +67,7 @@ const HTTP_PORT = portIndex !== -1 && args[portIndex + 1]
  * Create the MCP server instance.
  * Returns a new instance each time for HTTP mode (per-session servers).
  */
-function createServer() {
+function createServer(): McpServer {
   const server = new McpServer({
     name: 'federal-register',
     version: '1.0.0'
@@ -86,9 +105,7 @@ function createServer() {
         per_page: args.per_page,
         page: args.page
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
@@ -103,20 +120,16 @@ function createServer() {
     async (args) => {
       const result = await api.getExecutiveOrderByNumber(args.eo_number);
       if (!result) {
-        return {
-          content: [{ type: 'text', text: `Executive order ${args.eo_number} not found.` }]
-        };
+        return textResult(`Executive order ${args.eo_number} not found.`);
       }
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
   server.registerTool(
     'get_executive_order_full_text',
     {
-      description: 'Fetch the complete full text of a specific executive order by its EO number. The full text provides detailed policy language, specific directives, legal citations, and implementation details that are not available in abstracts or titles. This is a convenience wrapper that handles the document lookup internally - just pass the EO number.',
+      description: 'Fetch the complete full text of a specific executive order by its EO number. The full text provides detailed policy language, specific directives, legal citations, and implementation details that are not available in abstracts or titles.',
       inputSchema: {
         eo_number: z.number().describe('The executive order number (e.g., 14067, 13769)')
       }
@@ -124,13 +137,9 @@ function createServer() {
     async (args) => {
       const result = await api.getExecutiveOrderFullText(args.eo_number);
       if (!result) {
-        return {
-          content: [{ type: 'text', text: `Executive order ${args.eo_number} not found.` }]
-        };
+        return textResult(`Executive order ${args.eo_number} not found.`);
       }
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
@@ -141,9 +150,7 @@ function createServer() {
     },
     async () => {
       const result = await api.getRecentExecutiveOrders();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
@@ -161,10 +168,8 @@ function createServer() {
       }
     },
     async (args) => {
-      const result = await api.getDocument(args.document_number, args.fields);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      const result = await api.getDocument(args.document_number, args.fields ?? null);
+      return jsonResult(result);
     }
   );
 
@@ -178,9 +183,7 @@ function createServer() {
     },
     async (args) => {
       const result = await api.fetchDocumentText(args.raw_text_url);
-      return {
-        content: [{ type: 'text', text: result }]
-      };
+      return textResult(result);
     }
   );
 
@@ -202,7 +205,7 @@ function createServer() {
       }
     },
     async (args) => {
-      const conditions = {};
+      const conditions: Record<string, unknown> = {};
       if (args.term) conditions.term = args.term;
       if (args.type) conditions.type = args.type;
       if (args.presidential_document_type) {
@@ -214,12 +217,12 @@ function createServer() {
       if (args.publication_year) {
         conditions.publication_date = { year: args.publication_year };
       } else if (args.publication_date_gte || args.publication_date_lte) {
-        conditions.publication_date = {};
+        conditions.publication_date = {} as Record<string, string>;
         if (args.publication_date_gte) {
-          conditions.publication_date.gte = args.publication_date_gte;
+          (conditions.publication_date as Record<string, string>).gte = args.publication_date_gte;
         }
         if (args.publication_date_lte) {
-          conditions.publication_date.lte = args.publication_date_lte;
+          (conditions.publication_date as Record<string, string>).lte = args.publication_date_lte;
         }
       }
 
@@ -228,9 +231,7 @@ function createServer() {
         per_page: args.per_page,
         page: args.page
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
@@ -258,9 +259,7 @@ function createServer() {
         per_page: args.per_page,
         page: args.page
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
@@ -284,9 +283,7 @@ function createServer() {
         per_page: args.per_page,
         page: args.page
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
@@ -301,9 +298,7 @@ function createServer() {
     },
     async () => {
       const result = await api.getPublicInspectionDocuments();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
@@ -318,9 +313,7 @@ function createServer() {
     },
     async () => {
       const result = await api.getAgencies();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
@@ -334,9 +327,7 @@ function createServer() {
     },
     async (args) => {
       const result = await api.getAgency(args.slug);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-      };
+      return jsonResult(result);
     }
   );
 
@@ -347,7 +338,7 @@ function createServer() {
 // TRANSPORT: STDIO MODE
 // =============================================================================
 
-async function runStdioServer() {
+async function runStdioServer(): Promise<void> {
   const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -357,25 +348,24 @@ async function runStdioServer() {
 // TRANSPORT: HTTP MODE (Streamable HTTP)
 // =============================================================================
 
-async function runHttpServer() {
-  const express = require('express');
+async function runHttpServer(): Promise<void> {
   const app = express();
   app.use(express.json());
 
   // Store transports by session ID
-  const transports = {};
+  const transports: Record<string, StreamableHTTPServerTransport> = {};
 
   // Helper to check if request is an initialization request
-  function isInitializeRequest(body) {
-    return body && body.method === 'initialize';
+  function isInitializeRequest(body: unknown): boolean {
+    return typeof body === 'object' && body !== null && (body as { method?: string }).method === 'initialize';
   }
 
   // POST /mcp - Main MCP endpoint
-  app.post('/mcp', async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'];
+  app.post('/mcp', async (req: Request, res: Response): Promise<void> => {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
     try {
-      let transport;
+      let transport: StreamableHTTPServerTransport;
 
       if (sessionId && transports[sessionId]) {
         // Reuse existing transport for this session
@@ -384,7 +374,7 @@ async function runHttpServer() {
         // New initialization request - create new transport and server
         transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
-          onsessioninitialized: (newSessionId) => {
+          onsessioninitialized: (newSessionId: string) => {
             console.log(`Session initialized: ${newSessionId}`);
             transports[newSessionId] = transport;
           }
@@ -436,8 +426,8 @@ async function runHttpServer() {
   });
 
   // GET /mcp - SSE stream for server-to-client notifications
-  app.get('/mcp', async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'];
+  app.get('/mcp', async (req: Request, res: Response): Promise<void> => {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
     if (!sessionId || !transports[sessionId]) {
       res.status(400).send('Invalid or missing session ID');
       return;
@@ -448,8 +438,8 @@ async function runHttpServer() {
   });
 
   // DELETE /mcp - Session termination
-  app.delete('/mcp', async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'];
+  app.delete('/mcp', async (req: Request, res: Response): Promise<void> => {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
     if (!sessionId || !transports[sessionId]) {
       res.status(400).send('Invalid or missing session ID');
       return;
@@ -467,7 +457,7 @@ async function runHttpServer() {
   });
 
   // Health check endpoint
-  app.get('/health', (req, res) => {
+  app.get('/health', (_req: Request, res: Response): void => {
     res.json({ status: 'ok', mode: 'http', sessions: Object.keys(transports).length });
   });
 
@@ -496,7 +486,7 @@ async function runHttpServer() {
 // MAIN
 // =============================================================================
 
-async function main() {
+async function main(): Promise<void> {
   if (useHttp) {
     console.log('Starting in HTTP mode...');
     await runHttpServer();

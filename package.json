@@ -2,15 +2,22 @@
   "name": "federal-register-mcp",
   "version": "1.0.0",
   "description": "MCP server for the Federal Register API",
-  "main": "src/server.js",
-  "type": "commonjs",
+  "main": "dist/server.js",
+  "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "start:http": "node src/server.js --http"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "start:http": "node dist/server.js --http",
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "express": "^5.2.1",
     "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
   }
 }
