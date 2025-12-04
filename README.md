@@ -27,7 +27,14 @@ npm install
 
 ## Usage
 
-### With Claude Desktop
+This server supports two transport modes:
+
+| Mode | Transport | Use Case |
+|------|-----------|----------|
+| **stdio** (default) | Standard I/O | Claude Desktop (local) |
+| **http** | Streamable HTTP | Claude Code, ChatGPT, remote clients |
+
+### Claude Desktop (stdio mode)
 
 Add this to your Claude Desktop configuration file:
 
@@ -45,9 +52,9 @@ Add this to your Claude Desktop configuration file:
 }
 ```
 
-### With Claude Code
+### Claude Code (stdio or HTTP mode)
 
-Add this to your Claude Code MCP settings:
+**Option 1: stdio (local)**
 
 ```json
 {
@@ -60,13 +67,75 @@ Add this to your Claude Code MCP settings:
 }
 ```
 
+**Option 2: HTTP (local or remote)**
+
+Start the server in HTTP mode:
+```bash
+npm run start:http
+```
+
+Then configure Claude Code to connect to the HTTP endpoint:
+```json
+{
+  "mcpServers": {
+    "federal-register": {
+      "url": "http://localhost:3000/mcp"
+    }
+  }
+}
+```
+
+### ChatGPT (HTTP mode, requires public URL)
+
+ChatGPT cannot connect to localhost. You need to expose the server publicly:
+
+**Option 1: ngrok (for development)**
+
+```bash
+# Terminal 1: Start the server
+npm run start:http
+
+# Terminal 2: Create a tunnel
+ngrok http 3000
+```
+
+Then use the ngrok URL (e.g., `https://abc123.ngrok.io/mcp`) in ChatGPT.
+
+**Option 2: Deploy to a cloud host (for production)**
+
+Deploy to any HTTPS-capable host:
+- Cloudflare Workers
+- Fly.io
+- Railway
+- Vercel
+- AWS / GCP / Azure
+
+The MCP endpoint will be at `https://your-host.com/mcp`.
+
 ### Running Directly
 
 ```bash
+# stdio mode (default) - for Claude Desktop
 npm start
+
+# HTTP mode - for Claude Code, ChatGPT
+npm run start:http
+
+# HTTP mode with custom port
+node src/server.js --http --port 8080
+
+# Or use environment variable
+MCP_PORT=8080 npm run start:http
 ```
 
-The server communicates via stdio and is designed to be run as a subprocess by an MCP client.
+### Health Check (HTTP mode)
+
+When running in HTTP mode, a health endpoint is available:
+
+```bash
+curl http://localhost:3000/health
+# {"status":"ok","mode":"http","sessions":0}
+```
 
 ## Available Tools
 
