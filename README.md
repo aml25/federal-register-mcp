@@ -14,6 +14,13 @@ MCP is a protocol that allows AI assistants like Claude to interact with externa
 - **Agency Information**: List all federal agencies or get details about specific agencies
 - **Public Inspection**: View documents before official publication
 
+## Roadmap
+
+- **Hosted version** - Deploy a public instance so users can connect without running locally
+- **Legislation tracking** - Integrate Congress.gov API and Open States for federal and state legislation
+- **Enriched metadata** - Add categories, correlations between executive orders and legislation, impacted populations, and other analytical data
+- **UI experience** - Leverage OpenAI Apps to provide a visual interface for exploring executive and legislative data
+
 ## Installation
 
 ```bash
@@ -196,13 +203,6 @@ federal-register-mcp/
 ├── package.json
 └── README.md
 ```
-
-## Roadmap
-
-- **Hosted version** - Deploy a public instance so users can connect without running locally
-- **Legislation tracking** - Integrate Congress.gov API and Open States for federal and state legislation
-- **Enriched metadata** - Add categories, correlations between executive orders and legislation, impacted populations, and other analytical data
-- **UI experience** - Leverage OpenAI Apps to provide a visual interface for exploring executive and legislative data
 
 ## License
 
